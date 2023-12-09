@@ -65,7 +65,52 @@ class MasterDataService {
           .map((e) => City.fromMap(e))
           .toList();
     }
+    return result;
+  }
 
+  static Future<List<CostResult>> getCosts(
+      var origin, var destination, var weight, var courier) async {
+    print('kerequest for cicak');
+    // final queryParameters = {
+    //   'province': provID,
+    // };
+    var response = await http.post(
+      Uri.https('api.rajaongkir.com', '/starter/cost'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        'key': Const.apiKey,
+      },
+      body: jsonEncode(<String, String>{
+        'origin': origin,
+        'destination': destination,
+        'weight': weight,
+        'courier': courier,
+      }),
+    );
+
+    // print(response);
+    var job = json.decode(response.body);
+    // print(job);
+    // print(job['rajaongkir']);
+    List<CostResult> result = [];
+
+    if (response.statusCode == 200) {
+      result = (job['rajaongkir']['results'] as List)
+          .map((e) => CostResult.fromMap(e))
+          .toList();
+    }
+    // print(result);
+    // print('ngeretun');
+    // print(result[0].costs![0].cost![0].etd);
+    // print(result[0]);
     return result;
   }
 }
+// CostResult(
+//   jne, Jalur Nugraha Ekakurir (JNE), 
+//   [
+//     Cost(OKE, Ongkos Kirim Ekonomis, [Instance of 'CostInfo']), 
+//     Cost(REG, Layanan Reguler, [Instance of 'CostInfo']), 
+//     Cost(YES, Yakin Esok Sampai, [Instance of 'CostInfo'])
+//     ]
+//   )

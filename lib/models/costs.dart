@@ -1,17 +1,17 @@
 part of 'models.dart';
 
-class Costs extends Equatable {
+class Cost extends Equatable {
   final String? service;
   final String? description;
-  final List<Cost>? cost;
+  final List<CostInfo>? cost;
 
-  const Costs({this.service, this.description, this.cost});
+  const Cost({this.service, this.description, this.cost});
 
-  factory Costs.fromMap(Map<String, dynamic> data) => Costs(
+  factory Cost.fromMap(Map<String, dynamic> data) => Cost(
         service: data['service'] as String?,
         description: data['description'] as String?,
         cost: (data['cost'] as List<dynamic>?)
-            ?.map((e) => Cost.fromMap(e as Map<String, dynamic>))
+            ?.map((e) => CostInfo.fromMap(e as Map<String, dynamic>))
             .toList(),
       );
 
@@ -23,18 +23,15 @@ class Costs extends Equatable {
 
   /// `dart:convert`
   ///
-  /// Parses the string and returns the resulting Json object as [Costs].
-  factory Costs.fromJson(String data) {
-    return Costs.fromMap(json.decode(data) as Map<String, dynamic>);
+  /// Parses the string and returns the resulting Json object as [Cost].
+  factory Cost.fromJson(String data) {
+    return Cost.fromMap(json.decode(data) as Map<String, dynamic>);
   }
 
   /// `dart:convert`
   ///
-  /// Converts [Costs] to a JSON string.
+  /// Converts [Cost] to a JSON string.
   String toJson() => json.encode(toMap());
-
-  @override
-  bool get stringify => true;
 
   @override
   List<Object?> get props => [service, description, cost];

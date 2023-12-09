@@ -9,52 +9,23 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   List<Province> provinceData = [];
-
-  ///
   bool isLoading = false;
 
-  Future<dynamic> getProvinces() async {
-    ////
-    await MasterDataService.getProvince().then((value) {
-      setState(() {
-        provinceData = value;
-
-        ///
-        isLoading = false;
-      });
-    });
-  }
-
-  //data from api for dropdown
   Future<List<Province>>? provincedataorigin1;
   Future<List<City>>? citydataorigin1;
   Future<List<City>>? citydataDestination;
+  Future<List<CostResult>>? api_costs;
 
-  //form data
-  //access grams by gramsValue, selected kurir value by selectedValue
-  // dynamic cityIdOrigin;
+  bool is_origin_loading = false;
+  bool isApiCallInProgress = false;
+
   dynamic selectedCityOrigin;
   dynamic selectedProvinceOrigin;
-
   dynamic selectedProvinceDestination;
   dynamic selectedCityDestination;
-
   String selectedValue = 'jne';
   TextEditingController _controller = TextEditingController();
   String? gramsValue;
-
-  // Future<List<City>> getCities(var provId) async {
-  //   ////
-  //   dynamic city;
-  //   await MasterDataService.getCitybyprovince(provId).then((value) {
-  //     setState(() {
-  //       city = value;
-  //       cityDataOrigin = value;
-  //     });
-  //   });
-
-  //   return cityDataOrigin;
-  // }
 
   @override
   void initState() {
@@ -63,10 +34,29 @@ class _HomePageState extends State<HomePage> {
       isLoading = true;
     });
     getProvinces();
+  }
 
-    ///
-    // citydataorigin1 = MasterDataService.getCitybyprovince('5');
+  Future<void> getProvinces() async {
     provincedataorigin1 = MasterDataService.getProvince();
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  Future<void> updateCityDataOrigin() async {
+    if (selectedProvinceOrigin != null) {
+      citydataorigin1 = MasterDataService.getCitybyprovince(
+          selectedProvinceOrigin.provinceId);
+      setState(() {});
+    }
+  }
+
+  Future<void> updateCityDataDestination() async {
+    if (selectedProvinceDestination != null) {
+      citydataDestination = MasterDataService.getCitybyprovince(
+          selectedProvinceDestination.provinceId);
+      setState(() {});
+    }
   }
 
   @override
@@ -76,11 +66,15 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text("Home Page"),
         centerTitle: true,
+        backgroundColor: Colors.blue, // Set the background color to blue
       ),
       body: Stack(
         children: [
           Column(
             children: [
+              SizedBox(
+                height: 20,
+              ),
               //form part
               Flexible(
                 flex: 5,
@@ -194,12 +188,9 @@ class _HomePageState extends State<HomePage> {
                                                     setState(() {
                                                       selectedProvinceOrigin =
                                                           newValue;
+                                                      selectedCityOrigin = null;
                                                       //call a function
-                                                      citydataorigin1 =
-                                                          MasterDataService
-                                                              .getCitybyprovince(
-                                                                  selectedProvinceOrigin
-                                                                      .provinceId);
+                                                      updateCityDataOrigin();
 
                                                       // cityIdOrigin =
                                                       //     selectedProvinceOrigin
@@ -221,7 +212,11 @@ class _HomePageState extends State<HomePage> {
                                       child: FutureBuilder<List<City>>(
                                           future: citydataorigin1,
                                           builder: (context, snapshot) {
-                                            if (snapshot.hasData) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return UILoading
+                                                  .smallloadingBlock(); // Show loading block while waiting for data
+                                            } else if (snapshot.hasData) {
                                               return DropdownButton(
                                                   isExpanded: true,
                                                   value: selectedCityOrigin,
@@ -325,12 +320,9 @@ class _HomePageState extends State<HomePage> {
                                                       selectedProvinceDestination =
                                                           newValue;
                                                       //call a function
-                                                      citydataDestination =
-                                                          MasterDataService
-                                                              .getCitybyprovince(
-                                                                  selectedProvinceDestination
-                                                                      .provinceId);
-
+                                                      updateCityDataDestination();
+                                                      selectedCityDestination =
+                                                          null;
                                                       // cityIdOrigin =
                                                       //     selectedProvinceOrigin
                                                       //         .cityId;
@@ -351,7 +343,11 @@ class _HomePageState extends State<HomePage> {
                                       child: FutureBuilder<List<City>>(
                                           future: citydataDestination,
                                           builder: (context, snapshot) {
-                                            if (snapshot.hasData) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return UILoading
+                                                  .smallloadingBlock(); // Show loading block while waiting for data
+                                            } else if (snapshot.hasData) {
                                               return DropdownButton(
                                                   isExpanded: true,
                                                   value:
@@ -403,7 +399,45 @@ class _HomePageState extends State<HomePage> {
 
                         ElevatedButton(
                           onPressed: () {
-                            // Handle button press
+                            // Handle button press only if all form fields are filled
+                            if (selectedCityOrigin != null &&
+                                selectedCityDestination != null &&
+                                selectedValue.isNotEmpty &&
+                                gramsValue != null) {
+                              setState(() {
+                                isApiCallInProgress = true;
+                                print(isApiCallInProgress);
+                              });
+
+                              MasterDataService.getCosts(
+                                selectedCityOrigin.cityId,
+                                selectedCityDestination.cityId,
+                                gramsValue,
+                                selectedValue,
+                              ).then((List<CostResult>? data) {
+                                // Process the data when the Future completes
+                                setState(() {
+                                  isApiCallInProgress = false;
+                                  print(isApiCallInProgress);
+                                  print('data = {$data}');
+                                  api_costs = Future.value(data);
+                                  print('api = $api_costs');
+                                });
+                              }).catchError((error) {
+                                // Handle errors if any
+                                setState(() {
+                                  isApiCallInProgress = false;
+                                });
+                              });
+                            } else {
+                              // Show an alert or toast indicating that all form fields are required
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      "Please fill in all the required fields"),
+                                ),
+                              );
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             foregroundColor: Colors.white,
@@ -414,31 +448,49 @@ class _HomePageState extends State<HomePage> {
                                   8.0), // Adjust the radius as needed
                             ),
                           ),
+                          // ... rest of the button properties
                           child: Text('Click me'),
-                        )
+                        ),
                       ],
                     )),
               ),
               //result part
               Flexible(
-                flex: 5,
-                child: Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    child: provinceData.isEmpty
-                        ? const Align(
-                            alignment: Alignment.center,
-                            child: Text("Data tidak ditemukan"),
-                          )
-                        : ListView.builder(
-                            itemCount: provinceData.length,
+                  flex: 5,
+                  child: FutureBuilder<List<CostResult>>(
+                    future: api_costs,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return CircularProgressIndicator(); // Loading indicator while waiting for data
+                      } else if (snapshot.hasError) {
+                        return Text('Error: ${snapshot.error}');
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Text('No data available');
+                      } else {
+                        // Display a ListView of cards
+                        return ListView.builder(
+                            itemCount: snapshot.data!.length,
                             itemBuilder: (context, index) {
-                              return Card_Province(provinceData[index]);
-                            })),
-              ),
+                              CostResult costResult = snapshot.data![index];
+                              return Card_Province(costResult);
+                            });
+                      }
+                    },
+                  )),
             ],
           ),
-          isLoading == true ? UILoading.bigloadingBlock() : Container()
+          Visibility(
+              visible: isApiCallInProgress, // Set your condition here
+              child: Container(
+                alignment: Alignment.center,
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.black.withOpacity(0.5),
+                child: SpinKitFadingCircle(
+                  size: 100,
+                  color: Colors.blue,
+                ),
+              ))
         ],
       ),
     );
